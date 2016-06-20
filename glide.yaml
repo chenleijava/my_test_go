@@ -1,0 +1,9 @@
+package: main
+import:
+- package: github.com/donnie4w/go-logger
+- package: github.com/fzzy/radix
+  subpackages:
+  - /redis
+- package: github.com/golang/protobuf
+  subpackages:
+  - /proto
