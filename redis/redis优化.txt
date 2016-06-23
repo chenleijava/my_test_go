@@ -1,0 +1,11 @@
+参考文档:
+http://www.infoq.com/cn/articles/tq-redis-memory-usage-optimization-storage
+http://www.searchtb.com/2011/05/redis-storage.html
+
+redis  脚本 部署:
+http://blog.chinaunix.net/uid-28396214-id-4981572.html
+
+redis 好文章
+http://blog.nosqlfan.com/html/2942.html
+http://blog.nosqlfan.com/html/1282.html
+

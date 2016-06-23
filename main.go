@@ -11,12 +11,13 @@ import (
 	"sync"
 	"time"
 	"unsafe"
-	"github.com/fzzy/radix/redis"
 
 	"strconv"
 	"github.com/donnie4w/go-logger/logger"
 	"my_test/vo"
 	"github.com/golang/protobuf/proto"
+	"github.com/mediocregopher/radix.v2/redis"
+	"github.com/mediocregopher/radix.v2/pool"
 )
 
 var Per_value uint64 = 1000
@@ -137,15 +138,61 @@ func _log(i int) {
 }
 
 
+
+func test_redis() {
+
+	_cleint, err := redis.DialTimeout("tcp", "127.0.0.1:6379", time.Second * 10)
+	if err != nil {
+		logger.Debug("链接redis服务错误:", err)
+	} else {
+		logger.Debug("redis 链接成功!!!!")
+		_cleint.Cmd("AUTH", "suwei")
+
+		value, _ := _cleint.Cmd("get", "key").Int()
+		logger.Debug("单个client get value form redis:", value)
+		_cleint.Close()
+	}
+
+	//定制创建单个redis客户端
+	dial_func := func(network, addr string) (*redis.Client, error) {
+		client, err := redis.Dial(network, addr)
+		if err != nil {
+			return nil, err
+		}
+		if err = client.Cmd("AUTH", "suwei").Err;
+		err != nil {
+			client.Close()
+			return nil, err
+		}
+		return client, nil
+	}
+
+	/**
+		创建redis连接池
+	 */
+	pool, _err := pool.NewCustom("tcp", "127.0.0.1:6379", 10, dial_func)
+	if _err != nil {
+		logger.Debug("链接redis服务错误:", _err)
+	} else {
+		logger.Debug("redis 链接成功!!!!")
+		c, _ := pool.Get();
+		value, _ := c.Cmd("get", "key").Int()
+		pool.Put(c)
+		logger.Debug("redis connection pool:get value form redis:", value)
+	}
+
+}
+
 /**
  测试pb文件
  */
-func test_pb()  {
-	test := &vo.Test {
+func test_pb() {
+	//初始化
+	test := &vo.Test{
 		Label: proto.String("测试pb"),
 		Type:  proto.Int32(17),
 		Reps:  []int64{1, 2, 3},
-		Optionalgroup: &vo.Test_OptionalGroup {
+		Optionalgroup: &vo.Test_OptionalGroup{
 			RequiredField: proto.String("good bye"),
 		},
 	}
@@ -167,23 +214,16 @@ func test_pb()  {
 		log.Fatalf("data mismatch %q != %q", test.GetLabel(), newTest.GetLabel())
 	}
 }
-
 func main() {
 
-
 	test_pb()
+	_value, _ := vo.Add(99, 2)
+	_log(_value)
+	test_redis()
 
-	_value,_:=vo.Add(99,2)
-	_log(_value);
+}
 
-	c, err := redis.DialTimeout("tcp", "127.0.0.1:6379", time.Duration(10)*time.Second)
-	errHndlr(err)
-	defer c.Close()
-
-	{
-		sub_rect := new(RectSub)
-		sub_rect.ComArea0()
-	}
+func common_test() {
 
 	{
 		/*
@@ -294,8 +334,8 @@ func main() {
 	fmt.Printf("len:%d\n", len(resultChan))
 
 	//切片
-	go sum(values[0:len(values)/2], resultChan)
-	go sum(values[len(values)/2:len(values)], resultChan)
+	go sum(values[0:len(values) / 2], resultChan)
+	go sum(values[len(values) / 2:len(values)], resultChan)
 
 	/***/
 	_hash := sha1.New()
@@ -306,7 +346,7 @@ func main() {
 
 	//time.Sleep(1);
 	if _ok && _ok2 {
-		fmt.Println("Result:", sum1, sum2, sum1+sum2)
+		fmt.Println("Result:", sum1, sum2, sum1 + sum2)
 		//close(resultChan)
 	}
 
@@ -392,5 +432,4 @@ func main() {
 	defer func() {
 		fmt.Print("测试defer!!!!\n")
 	}()
-
 }
